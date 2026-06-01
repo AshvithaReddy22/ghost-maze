@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Ghost Maze Nightmare</title>
+
+<style>
+body{
+margin:0;
+background:linear-gradient(to bottom,#000,#220000,#550000);
+font-family:Arial,sans-serif;
+overflow:hidden;
+color:white;
+}
+
+#menu{
+position:absolute;
+width:100%;
+height:100%;
+display:flex;
+flex-direction:column;
+justify-content:center;
+align-items:center;
+background:rgba(0,0,0,.9);
+z-index:10;
+}
+
+button{
+padding:12px 30px;
+margin:10px;
+font-size:20px;
+cursor:pointer;
+border:none;
+background:#ff0000;
+color:white;
+border-radius:8px;
+}
+
+button:hover{
+background:#cc0000;
+}
+
+canvas{
+display:none;
+margin:auto;
+background:#050505;
+border:4px solid red;
+box-shadow:0 0 40px red;
+}
+
+#info{
+position:absolute;
+top:10px;
+left:10px;
+font-size:22px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="menu">
+<h1>👻 GHOST MAZE NIGHTMARE 👻</h1>
+<p>Collect 3 Keys → Reach Exit → Avoid Ghost</p>
+
+<button onclick="startGame('easy')">Easy</button>
+<button onclick="startGame('medium')">Medium</button>
+<button onclick="startGame('hard')">Nightmare</button>
+</div>
+
+<div id="info">
+🗝 Keys: <span id="keys">0</span>/3
+</div>
+
+<canvas id="game" width="1400" height="850"></canvas>
+
+<script>
+
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+
+let difficulty="easy";
+let keysCollected=0;
+
+const maze=[
+"####################################",
+"#      #       #      #          E #",
+"# #### # ##### # #### # ####### ####",
+"# #    # #     #    # #       #    #",
+"# # #### # ######## # ####### #### #",
+"# #      #      #   #       #      #",
+"# ######## #### # ######## ###### ##",
+"#        #    # #      #          ##",
+"######## #### # ###### ########## ##",
+"#      #      #      #        #   ##",
+"# #### ######## #### ####### # #### ",
+"#    #        #    #       # #     #",
+"#### ######## #### ####### # ##### #",
+"#       #       #      K # #       #",
+"# ##### ####### ####### # ######## #",
+"#   K #       #       # #        # #",
+"### # ####### ####### # ######## # #",
+"#   #       #       # #      K   # #",
+"# ######### ####### # ########### #",
+"#S                           #    ##",
+"####################################"
+];
+
+let cell=35;
+
+let player={
+x:cell,
+y:(maze.length-2)*cell
+};
+
+let ghost={
+x:1200,
+y:70,
+speed:0.7
+};
+
+function startGame(level){
+
+difficulty=level;
+
+if(level=="easy"){
+ghost.speed=0.7;
+}
+
+if(level=="medium"){
+ghost.speed=1.0;
+}
+
+if(level=="hard"){
+ghost.speed=1.5;
+}
+
+
+document.getElementById("menu").style.display="none";
+canvas.style.display="block";
+
+requestAnimationFrame(gameLoop);
+}
+
+document.addEventListener("keydown",movePlayer);
+
+function movePlayer(e){
+
+let nx=player.x;
+let ny=player.y;
+
+if(e.key=="ArrowUp"||e.key=="w") ny-=cell;
+if(e.key=="ArrowDown"||e.key=="s") ny+=cell;
+if(e.key=="ArrowLeft"||e.key=="a") nx-=cell;
+if(e.key=="ArrowRight"||e.key=="d") nx+=cell;
+
+let row=Math.floor(ny/cell);
+let col=Math.floor(nx/cell);
+
+if(row<0||row>=maze.length) return;
+if(col<0||col>=maze[0].length) return;
+
+let tile=maze[row][col];
+
+if(tile=="#"){
+alert("💀 You touched the cursed wall!");
+location.reload();
+return;
+}
+
+player.x=nx;
+player.y=ny;
+
+if(tile=="K"){
+
+keysCollected++;
+
+document.getElementById("keys").innerText=
+Math.min(keysCollected,3);
+
+alert("🗝 Key Found!");
+}
+
+if(tile=="E" && keysCollected>=3){
+
+alert("🏆 YOU ESCAPED!");
+location.reload();
+
+}else if(tile=="E"){
+
+alert("Need all 3 keys first!");
+
+}
+}
+
+function drawMaze(){
+
+ctx.clearRect(0,0,canvas.width,canvas.height);
+
+let grad=ctx.createLinearGradient(0,0,0,850);
+grad.addColorStop(0,"#000");
+grad.addColorStop(.5,"#220000");
+grad.addColorStop(1,"#550000");
+
+ctx.fillStyle=grad;
+ctx.fillRect(0,0,canvas.width,canvas.height);
+
+ctx.fillStyle="red";
+ctx.beginPath();
+ctx.arc(1250,100,60,0,Math.PI*2);
+ctx.fill();
+
+for(let r=0;r<maze.length;r++){
+
+for(let c=0;c<maze[r].length;c++){
+
+let tile=maze[r][c];
+
+if(tile=="#"){
+
+ctx.fillStyle="#ff0000";
+
+ctx.fillRect(
+c*cell,
+r*cell,
+cell,
+cell
+);
+
+}
+
+if(tile=="K"){
+
+ctx.font="26px Arial";
+ctx.fillText(
+"🗝",
+c*cell+5,
+r*cell+28
+);
+
+}
+
+if(tile=="E"){
+
+ctx.font="28px Arial";
+ctx.fillText(
+"🚪",
+c*cell+4,
+r*cell+28
+);
+
+}
+}
+}
+
+ctx.font="34px Arial";
+ctx.fillText(
+"🧍",
+player.x,
+player.y+28
+);
+
+ctx.font="36px Arial";
+ctx.fillText(
+"👻",
+ghost.x,
+ghost.y+30
+);
+}
+
+function updateGhost(){
+
+let dx=player.x-ghost.x;
+let dy=player.y-ghost.y;
+
+let distance=Math.sqrt(dx*dx+dy*dy);
+
+if(distance>0){
+
+ghost.x+=(dx/distance)*ghost.speed;
+ghost.y+=(dy/distance)*ghost.speed;
+
+}
+
+if(
+Math.abs(player.x-ghost.x)<25 &&
+Math.abs(player.y-ghost.y)<25
+){
+
+alert("👻 The ghost caught you!");
+location.reload();
+
+}
+}
+
+function gameLoop(){
+
+drawMaze();
+updateGhost();
+
+requestAnimationFrame(gameLoop);
+}
+
+</script>
+
+</body>
+</html>
